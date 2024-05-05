@@ -108,6 +108,8 @@ typedef struct _RT_ADAPTER
     BOOLEAN LSOv4;
     BOOLEAN LSOv6;
 
+    BOOLEAN EEEEnable;
+
     struct re_softc bsdData;
 } RT_ADAPTER, * PRT_ADAPTER;
 

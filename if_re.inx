@@ -79,6 +79,7 @@ AddReg                  = FlowControl.kw
 AddReg                  = OffloadChecksum.kw
 AddReg                  = PriorityVlanTag.kw
 AddReg                  = LSO.kw
+AddReg                  = EEE.kw
 
 [ndi.reg]
 ; TODO: Update these if your device is not Ethernet.
@@ -224,6 +225,14 @@ HKR,Ndi\Params\*LsoV2Ipv6,                      Default,        0,  "1"
 HKR,Ndi\Params\*LsoV2Ipv6\enum,                 "0",            0,  %Disabled%
 HKR,Ndi\Params\*LsoV2Ipv6\enum,                 "1",            0,  %Enabled%
 
+[EEE.kw]
+HKR, Ndi\params\*EEE,							ParamDesc,		0,	%EEE%
+HKR, Ndi\params\*EEE,							Type,			0,	"enum"
+HKR, Ndi\params\*EEE,							Default,		0,	"1"
+HKR, Ndi\params\*EEE\enum,						"0",			0,	%Disabled%
+HKR, Ndi\params\*EEE\enum,						"1",			0,	%Enabled%
+HKR,,*EEE,0,"1"
+
 [Strings]
 AutoDetect               = "Auto Negotiation"
 SpeedDuplex              = "Speed & Duplex"
@@ -254,6 +263,7 @@ VLANEnabled              = "VLAN Enabled"
 
 LSOv2Ipv4                = "Large Send Offload v2 (IPv4)"
 LSOv2Ipv6                = "Large Send Offload v2 (IPv6)"
+EEE                      = "Energy-Efficient Ethernet"
 
 SPSVCINST_ASSOCSERVICE= 0x00000002
 StdMfg                 = "Realtek"
