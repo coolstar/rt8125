@@ -136,7 +136,7 @@ RtInitializeHardware(
     RtlZeroMemory(&adapter->bsdData, sizeof(adapter->bsdData));
 
     adapter->bsdData.dev = adapter;
-    adapter->bsdData.mtu = ETHERMTU;
+    adapter->bsdData.if_net.if_mtu = ETHERMTU;
     adapter->bsdData.eee_enable = adapter->EEEEnable ? 1 : 0;
 
     UINT16 devID = ConfigRead16(adapter, 2);
@@ -149,23 +149,23 @@ RtInitializeHardware(
     re_init_software_variable(&adapter->bsdData);
 
     if ((sc->re_type == MACFG_24) || (sc->re_type == MACFG_25) || (sc->re_type == MACFG_26))
-        sc->if_hwassist |= CSUM_TCP | CSUM_UDP;
+        sc->if_net.if_hwassist |= CSUM_TCP | CSUM_UDP;
     else
-        sc->if_hwassist |= RE_CSUM_FEATURES;
-    sc->if_capenable = IFCAP_HWCSUM | IFCAP_HWCSUM_IPV6;
+        sc->if_net.if_hwassist |= RE_CSUM_FEATURES;
+    sc->if_net.if_capenable = IFCAP_HWCSUM | IFCAP_HWCSUM_IPV6;
     /* TSO capability setup */
     if (sc->re_if_flags & RL_FLAG_8168G_PLUS) {
-        sc->if_hwassist |= CSUM_TSO;
-        sc->if_capenable |= IFCAP_TSO;
+        sc->if_net.if_hwassist |= CSUM_TSO;
+        sc->if_net.if_capenable |= IFCAP_TSO;
     }
     /* RTL8169/RTL8101E/RTL8168B not support TSO v6 */
     if (!(sc->re_if_flags & RL_FLAG_DESCV2)) {
-        sc->if_hwassist &= ~(CSUM_IP6_TSO |
+        sc->if_net.if_hwassist &= ~(CSUM_IP6_TSO |
             CSUM_TCP_IPV6 |
             CSUM_UDP_IPV6);
-        sc->if_capenable &= ~(IFCAP_TSO6 | IFCAP_HWCSUM_IPV6);
+        sc->if_net.if_capenable &= ~(IFCAP_TSO6 | IFCAP_HWCSUM_IPV6);
     }
-    sc->if_capenable |= IFCAP_VLAN_MTU | IFCAP_VLAN_HWTAGGING;
+    sc->if_net.if_capenable |= IFCAP_VLAN_MTU | IFCAP_VLAN_HWTAGGING;
 
     adapter->bsdData.re_rx_cstag = 1;
     adapter->bsdData.re_tx_cstag = 1;

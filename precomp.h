@@ -14,6 +14,8 @@
 #include <net/ieee8021q.h>
 #include <net/packethash.h>
 
+#include <intrin.h>
+
 #include "forward.h"
 
 // Error log definitions

@@ -32,9 +32,7 @@
  * $FreeBSD: src/sys/dev/re/if_rereg.h,v 1.14.2.1 2001/07/19 18:33:07 wpaul Exp $
  */
 
-#ifndef _WIN32
 #include <netinet/tcp_lro.h>
-#endif // !_WIN32
 
 /*#define VERSION(_MainVer,_MinorVer)	((_MainVer)*10+(_MinorVer))*/
 /*#define OS_VER	VERSION(5,1)*/
@@ -155,12 +153,6 @@
 #define RE_EFUSEAR	0x00DC
 #define RE_CPlusCmd	0x00E0
 #define RE_IntrMitigate	0x00E2
-
-#ifdef _WIN32
-#define RE_RXADDR0	0x00E4		/* address of RX descriptor 0 */
-#define RE_RXADDR1	0x00E8		/* address of RX descriptor 1 */
-#endif // _WIN32
-
 #define	RE_MTPS		0x00EC
 #define	RE_CMAC_IBCR0     	0x00F8
 #define	RE_CMAC_IBCR2     	0x00F9
@@ -269,14 +261,6 @@
 	(RE_ISR_TX_OK|RE_ISR_RX_OK|RE_ISR_RX_ERR|RE_ISR_TX_ERR|		\
 	RE_ISR_RX_OVERRUN|RE_ISR_PKT_UNDERRUN|RE_ISR_TDU|	\
 	RE_ISR_PCS_TIMEOUT|RE_ISR_SYSTEM_ERR)
-
-#ifdef _WIN32
-#undef RE_INTRS
-#define RE_INTRS	\
-	(RE_ISR_TX_OK|RE_ISR_RX_OK|RE_ISR_RX_ERR|RE_ISR_TX_ERR|		\
-	RE_ISR_PKT_UNDERRUN|RE_ISR_LINKCHG|	\
-	RE_ISR_PCS_TIMEOUT|RE_ISR_SYSTEM_ERR)
-#endif // _WIN32
 
 /*
  * Media status register. (8139 only)
@@ -854,10 +838,6 @@ struct re_mii_frame {
 #define RL_FLAG_PCIE            0x40000000
 #define RL_FLAG_MAGIC_PACKET_V3 0x80000000
 
-#ifdef _WIN32
-#define RL_CRC          (1 << 19)
-#endif // _WIN32
-
 #define RL_PID0 		(1<<17)
 #define RL_PID1 		(1<<18)
 #define RL_ProtoUDP  	(RL_PID1)
@@ -972,14 +952,6 @@ enum {
 //#define MAC_STYLE_2	2	/* RTL8111C/CP/D and RTL8102E */
 
 struct re_softc {
-
-#ifdef _WIN32
-        struct _RT_ADAPTER* dev;
-        struct ifnet if_net;
-        u_int8_t eee_enable;
-#endif // _WIN32
-
-#ifndef _WIN32
 #if OS_VER<VERSION(6,0)
         struct arpcom		arpcom;			/* interface info */
 #else
@@ -995,30 +967,20 @@ struct re_softc {
         struct resource		*re_irq;
         void			*re_intrhand;
         struct ifmedia		media;			/* used to instead of MII */
-#endif // !_WIN32
 
         /* Variable for 8169 family */
         u_int8_t		re_8169_MacVersion;
         u_int8_t		re_8169_PhyVersion;
 
-#ifndef _WIN32
         u_int8_t		rx_fifo_overflow;
         u_int8_t		driver_detach;
 
         u_int8_t		re_unit;			/* interface number */
-#endif // !_WIN32
-
         u_int8_t		re_type;
-
-#ifndef _WIN32
         //u_int8_t		re_stats_no_timeout;
         u_int8_t		re_revid;
         u_int16_t		re_vendor_id;
-#endif // !_WIN32
-
         u_int16_t		re_device_id;
-
-#ifndef _WIN32
         u_int16_t		re_subvendor_id;
         u_int16_t		re_subdevice_id;
 
@@ -1035,22 +997,13 @@ struct re_softc {
         bus_dma_tag_t		re_parent_tag;
         device_t		dev;
         int			 re_expcap;
-#endif // !_WIN32
-
         int			 max_jumbo_frame_size;
         int			 re_rx_mbuf_sz;
-
-#ifndef _WIN32
         int 		 re_rx_desc_buf_sz;
-#endif // !_WIN32
-
         int			 re_if_flags;
         int 		 re_tx_cstag;
         int			 re_rx_cstag;
-
-#ifndef _WIN32
         int          suspended;      /* 0 = normal  1 = suspended */
-#endif // !_WIN32
 
         u_int8_t RequireAdcBiasPatch;
         u_int16_t AdcBiasPatchIoffset;
@@ -1058,9 +1011,7 @@ struct re_softc {
         u_int8_t RequireAdjustUpsTxLinkPulseTiming;
         u_int16_t SwrCnt1msIni;
 
-#ifndef _WIN32
         u_int8_t org_mac_addr[ETHER_ADDR_LEN];
-#endif // !_WIN32
 
         u_int8_t random_mac;
 
@@ -1080,13 +1031,11 @@ struct re_softc {
 
         u_int16_t phy_reg_anlpar;
 
-#ifndef _WIN32
         u_int8_t re_hw_enable_msi_msix;
 
         u_int8_t re_coalesce_tx_pkt;
 
         u_int8_t	link_state;
-#endif // !_WIN32
 
         u_int8_t	prohibit_access_reg;
 
@@ -1096,14 +1045,10 @@ struct re_softc {
 
         u_int8_t HwSuppDashVer;
         u_int8_t	re_dash;
-
-#ifndef _WIN32
         bus_space_handle_t	re_mapped_cmac_handle;			/* bus space tag */
         bus_space_tag_t		re_mapped_cmac_tag;			/* bus space tag */
         bus_space_handle_t	re_cmac_handle;		/* bus space handle */
         bus_space_tag_t		re_cmac_tag;			/* bus space tag */
-#endif // !_WIN32
-
         u_int8_t HwPkgDet;
 
         u_int32_t HwFiberModeVer;
@@ -1114,7 +1059,6 @@ struct re_softc {
         u_int8_t HwSuppMacMcuVer;
         u_int16_t MacMcuPageSize;
 
-#ifndef _WIN32
         struct lro_ctrl		 re_lro;
 
         int (*ifmedia_upd)(struct ifnet *);
@@ -1127,7 +1071,6 @@ struct re_softc {
         void (*int_task)(void *, int);
         void (*int_task_poll)(void *, int);
         void (*hw_start_unlock)(struct re_softc *);
-#endif // !_WIN32
 };
 
 enum bits {
@@ -1165,17 +1108,11 @@ enum bits {
         BIT_31 = (1 << 31)
 };
 
-#ifdef _WIN32
-#define RE_LOCK(_sc) WdfSpinLockAcquire(_sc->dev->Lock)
-#define RE_UNLOCK(_sc) WdfSpinLockRelease(_sc->dev->Lock)
-#define RE_LOCK_ASSERT(_sc)
-#else // _WIN32
 #define RE_LOCK(_sc)		mtx_lock(&(_sc)->mtx)
 #define RE_UNLOCK(_sc)		mtx_unlock(&(_sc)->mtx)
 #define RE_LOCK_INIT(_sc,_name)	mtx_init(&(_sc)->mtx,_name,MTX_NETWORK_LOCK,MTX_DEF)
 #define RE_LOCK_DESTROY(_sc)	mtx_destroy(&(_sc)->mtx)
 #define RE_LOCK_ASSERT(_sc)	mtx_assert(&(_sc)->mtx,MA_OWNED)
-#endif // _WIN32
 
 /*
  * register space access macros
@@ -1188,27 +1125,9 @@ enum bits {
 #define CSR_WRITE_2(sc, reg, val)	((sc->prohibit_access_reg)?:bus_space_write_2(sc->re_btag, sc->re_bhandle, reg, val))
 #define CSR_WRITE_1(sc, reg, val)	((sc->prohibit_access_reg)?:bus_space_write_1(sc->re_btag, sc->re_bhandle, reg, val))
 
-#ifdef _WIN32
-#undef CSR_WRITE_4
-#undef CSR_WRITE_2
-#undef CSR_WRITE_1
-#define CSR_WRITE_4(sc, reg, val)	((sc->prohibit_access_reg)?__nop():WRITE_REGISTER_NOFENCE_ULONG((PULONG)MmioAddr(sc, reg), val))
-#define CSR_WRITE_2(sc, reg, val)	((sc->prohibit_access_reg)?__nop():WRITE_REGISTER_NOFENCE_USHORT((PUSHORT)MmioAddr(sc, reg), val))
-#define CSR_WRITE_1(sc, reg, val)	((sc->prohibit_access_reg)?__nop():WRITE_REGISTER_NOFENCE_UCHAR((PUCHAR)MmioAddr(sc, reg), val))
-#endif // _WIN32
-
 #define CSR_READ_4(sc, reg)	((sc->prohibit_access_reg)?0xFFFFFFFF:bus_space_read_4(sc->re_btag, sc->re_bhandle, reg))
 #define CSR_READ_2(sc, reg)	((sc->prohibit_access_reg)?0xFFFF:bus_space_read_2(sc->re_btag, sc->re_bhandle, reg))
 #define CSR_READ_1(sc, reg)	((sc->prohibit_access_reg)?0xFF:bus_space_read_1(sc->re_btag, sc->re_bhandle, reg))
-
-#ifdef _WIN32
-#undef CSR_READ_4
-#undef CSR_READ_2
-#undef CSR_READ_1
-#define CSR_READ_4(sc, reg)	((sc->prohibit_access_reg)?0xFFFFFFFF:READ_REGISTER_NOFENCE_ULONG((PULONG)MmioAddr(sc, reg)))
-#define CSR_READ_2(sc, reg)	((sc->prohibit_access_reg)?0xFFFF:READ_REGISTER_NOFENCE_USHORT((PUSHORT)MmioAddr(sc, reg)))
-#define CSR_READ_1(sc, reg)	((sc->prohibit_access_reg)?0xFF:READ_REGISTER_NOFENCE_UCHAR((PUCHAR)MmioAddr(sc, reg)))
-#endif // _WIN32
 
 /* cmac write/read MMIO register */
 #define RE_CMAC_WRITE_1(sc, reg, val) ((sc->prohibit_access_reg)?:bus_space_write_1(sc->re_cmac_tag, sc->re_cmac_handle, reg, val))
@@ -1217,21 +1136,6 @@ enum bits {
 #define RE_CMAC_READ_1(sc, reg) ((sc->prohibit_access_reg)?0xFF:bus_space_read_1(sc->re_cmac_tag, sc->re_cmac_handle, reg))
 #define RE_CMAC_READ_2(sc, reg) ((sc->prohibit_access_reg)?0xFFFF:bus_space_read_2(sc->re_cmac_tag, sc->re_cmac_handle, reg))
 #define RE_CMAC_READ_4(sc, reg) (sc->prohibit_access_reg)?0xFFFFFFFF:bus_space_read_4(sc->re_cmac_tag, sc->re_cmac_handle, reg))
-
-#ifdef _WIN32
-#undef RE_CMAC_WRITE_1
-#undef RE_CMAC_WRITE_2
-#undef RE_CMAC_WRITE_4
-#undef RE_CMAC_READ_1
-#undef RE_CMAC_READ_2
-#undef RE_CMAC_READ_4
-#define RE_CMAC_WRITE_1(sc, reg, val) ((sc->prohibit_access_reg)?:bus_space_write_1(sc->re_cmac_tag, sc->re_cmac_handle, reg, val))
-#define RE_CMAC_WRITE_2(sc, reg, val) ((sc->prohibit_access_reg)?:bus_space_write_2(sc->re_cmac_tag, sc->re_cmac_handle, reg, val))
-#define RE_CMAC_WRITE_4(sc, reg, val) ((sc->prohibit_access_reg)?:bus_space_write_4(sc->re_cmac_tag, sc->re_cmac_handle, reg, val))
-#define RE_CMAC_READ_1(sc, reg) ((sc->prohibit_access_reg)?0xFF:bus_space_read_1(sc->re_cmac_tag, sc->re_cmac_handle, reg))
-#define RE_CMAC_READ_2(sc, reg) ((sc->prohibit_access_reg)?0xFFFF:bus_space_read_2(sc->re_cmac_tag, sc->re_cmac_handle, reg))
-#define RE_CMAC_READ_4(sc, reg) (sc->prohibit_access_reg)?0xFFFFFFFF:bus_space_read_4(sc->re_cmac_tag, sc->re_cmac_handle, reg))
-#endif // _WIN32
 
 #define RE_TIMEOUT		1000
 
@@ -1254,9 +1158,6 @@ enum bits {
 #define RT_DEVICEID_8162			0x8162		/* For RTL8168KB */
 #define RT_DEVICEID_8136			0x8136		/* For RTL8101E */
 #define RT_DEVICEID_8125			0x8125		/* For RTL8125 */
-#ifdef _WIN32
-#define RT_DEVICEID_3000			0x3000		/* For Killer E3000/E3100 with RTL8125 */
-#endif // _WIN32
 #define RT_DEVICEID_8126			0x8126		/* For RTL8126 */
 
 /*
@@ -1411,18 +1312,6 @@ enum bits {
 #define DBGPRINT1(_unit, _msg, _para1)
 #endif
 
-#ifdef _WIN32
-#undef DBGPRINT
-#undef DBGPRINT1
-#if DEBUG
-#define DBGPRINT(_unit, _msg)          DbgPrint(_msg "\n")
-#define DBGPRINT1(_unit, _msg, _para1) DbgPrint(_msg "\n", _para1)
-#else // DEBUG
-#define DBGPRINT(_unit, _msg)          __nop()
-#define DBGPRINT1(_unit, _msg, _para1) __nop()
-#endif // DEBUG
-#endif // _WIN32
-
 #if OS_VER<VERSION(4,9)
 #define IFM_1000_T		IFM_1000_TX
 #elif OS_VER<VERSION(6,0)
@@ -1433,11 +1322,6 @@ enum bits {
 #else
 #define RE_GET_IFNET(SC)	SC->re_ifp
 #endif
-
-#ifdef _WIN32
-#undef RE_GET_IFNET
-#define RE_GET_IFNET(SC)	&SC->if_net
-#endif // _WIN32
 
 #if OS_VER>=VERSION(10,0)
 #define IF_ADDR_LOCK        IF_ADDR_WLOCK

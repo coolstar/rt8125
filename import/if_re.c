@@ -40,16 +40,7 @@
  * Columbia University, New York City
  */
 
-#include "precomp.h" // _WIN32: Must be outside the ifdef due to precompiled header rules.
-#ifdef _WIN32
-#include "trace.h"
-#include "adapter.h"
-#include <bcrypt.h>
-#endif // _WIN32
-
-#ifndef _WIN32
 #include <sys/cdefs.h>
-#endif // !_WIN32
 
 #ifdef ENABLE_FIBER_SUPPORT
 #define FIBER_SUFFIX "-FIBER"
@@ -63,8 +54,6 @@ __FBSDID("$FreeBSD: src/sys/dev/re/if_re.c,v " RE_VERSION __DATE__ " " __TIME__ 
 /*
 * This driver also support Realtek RTL8110/RTL8169, RTL8111/RTL8168, RTL8125, RTL8126, and RTL8136/RTL810x.
 */
-
-#ifndef _WIN32
 
 #include <sys/param.h>
 #include <sys/systm.h>
@@ -129,37 +118,6 @@ __FBSDID("$FreeBSD: src/sys/dev/re/if_re.c,v " RE_VERSION __DATE__ " " __TIME__ 
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
-#endif // !_WIN32
-
-#ifdef _WIN32
-
-NTSYSAPI ULONG RtlRandomEx(
-    _Inout_ PULONG Seed
-);
-
-static inline uint32_t pci_read_config(RT_ADAPTER* Adapter, int reg, int width) {
-    UINT32 val;
-    Adapter->PciConfig.GetBusData(
-        Adapter->PciConfig.Context,
-        PCI_WHICHSPACE_CONFIG,
-        &val,
-        reg,
-        width <= sizeof(val) ? width : sizeof(val));
-    return val;
-}
-
-static inline uint32_t pci_write_config(RT_ADAPTER* Adapter, int reg, uint32_t val, int width) {
-    Adapter->PciConfig.SetBusData(
-        Adapter->PciConfig.Context,
-        PCI_WHICHSPACE_CONFIG,
-        &val,
-        reg,
-        width <= sizeof(val) ? width : sizeof(val));
-    return val;
-}
-
-#endif // _WIN32
-
 #define EE_SET(x)					\
 	CSR_WRITE_1(sc, RE_EECMD,			\
 		CSR_READ_1(sc, RE_EECMD) | x)
@@ -167,8 +125,6 @@ static inline uint32_t pci_write_config(RT_ADAPTER* Adapter, int reg, uint32_t v
 #define EE_CLR(x)					\
 	CSR_WRITE_1(sc, RE_EECMD,			\
 		CSR_READ_1(sc, RE_EECMD) & ~x)
-
-#ifndef _WIN32
 
 struct bus_dma_tag {
         struct bus_dma_tag_common common;
@@ -228,8 +184,6 @@ static int	re_suspend 			__P((device_t));
 static int	re_resume 			__P((device_t));
 static int	re_shutdown			__P((device_t));
 
-#endif // !_WIN32
-
 void MP_WritePhyUshort			__P((struct re_softc*, u_int8_t, u_int16_t));
 u_int16_t MP_ReadPhyUshort		__P((struct re_softc*, u_int8_t));
 static void MP_WriteEPhyUshort			__P((struct re_softc*, u_int8_t, u_int16_t));
@@ -251,7 +205,6 @@ static bool re_clear_phy_mcu_patch_request  __P((struct re_softc *));
 
 static int re_check_dash  __P((struct re_softc *));
 
-#ifndef _WIN32
 static void re_driver_start             __P((struct re_softc*));
 static void re_driver_stop         	__P((struct re_softc*));
 
@@ -260,13 +213,10 @@ static void re_init			__P((void *));
 static int  re_var_init			__P((struct re_softc *));
 static void re_reset			__P((struct re_softc *));
 static void re_stop			__P((struct re_softc *));
-#endif // !_WIN32
-
 static void re_setwol			__P((struct re_softc *));
 static void re_clrwol			__P((struct re_softc *));
 static void re_set_wol_linkspeed 	__P((struct re_softc *));
 
-#ifndef _WIN32
 static void re_start				__P((struct ifnet *));
 static void re_start_locked			__P((struct ifnet *));
 static int re_encap				__P((struct re_softc *, struct mbuf **));
@@ -313,15 +263,12 @@ static void re_ifmedia_sts			__P((struct ifnet *, struct ifmediareq *));
 
 static int  re_ifmedia_upd_8125			__P((struct ifnet *));
 static void re_ifmedia_sts_8125			__P((struct ifnet *, struct ifmediareq *));
-#endif // !_WIN32
 
 static void re_eeprom_ShiftOutBits		__P((struct re_softc *, int, int));
 static u_int16_t re_eeprom_ShiftInBits		__P((struct re_softc *));
 static void re_eeprom_EEpromCleanup		__P((struct re_softc *));
 static void re_eeprom_getword			__P((struct re_softc *, int, u_int16_t *));
 static void re_read_eeprom			__P((struct re_softc *, caddr_t, int, int, int));
-
-#ifndef _WIN32
 static void re_int_task_poll		(void *, int);
 static void re_int_task				(void *, int);
 static void re_int_task_8125_poll	(void *, int);
@@ -334,14 +281,10 @@ static void re_release_buf(struct re_softc *);
 static void set_rxbufsize(struct re_softc*);
 static void re_release_rx_buf(struct re_softc *);
 static void re_release_tx_buf(struct re_softc *);
-#endif // !_WIN32
-
 static u_int32_t re_eri_read(struct re_softc *, int, int, int);
 static int re_eri_write(struct re_softc *, int, int, u_int32_t, int);
 static void OOB_mutex_lock(struct re_softc *);
 static void OOB_mutex_unlock(struct re_softc *);
-
-#ifndef _WIN32
 static void re_hw_start_unlock(struct re_softc *sc);
 static void re_hw_start_unlock_8125(struct re_softc *sc);
 
@@ -427,8 +370,6 @@ static driver_t re_driver = {
 static devclass_t re_devclass;
 
 DRIVER_MODULE(if_re, pci, re_driver, re_devclass, 0, 0);
-
-#endif // !_WIN32
 
 static void
 ClearAndSetEthPhyBit(
@@ -645,22 +586,13 @@ static void re_wait_phy_ups_resume(struct re_softc *sc, u_int16_t PhyState)
         };
 }
 
-#ifdef _WIN32
-void re_phy_power_up(struct re_softc* sc)
-#else // _WIN32
 static void re_phy_power_up(dev)
 device_t		dev;
-#endif // _WIN32
 {
-#ifndef _WIN32
         struct re_softc		*sc;
-#endif // !_WIN32
-
         u_int8_t Data8;
 
-#ifndef _WIN32
         sc = device_get_softc(dev);
-#endif // !_WIN32
 
         if ((sc->re_if_flags & RL_FLAG_PHYWAKE_PM) != 0)
                 CSR_WRITE_1(sc, RE_PMCH, CSR_READ_1(sc, RE_PMCH) | (BIT_6|BIT_7));
@@ -744,22 +676,13 @@ static u_int16_t re_get_phy_lp_ability(struct re_softc *sc)
         return anlpar;
 }
 
-#ifdef _WIN32
-static void re_phy_power_down(struct re_softc* sc)
-#else // _WIN32
 static void re_phy_power_down(dev)
 device_t		dev;
-#endif // _WIN32
 {
-#ifndef _WIN32
         struct re_softc		*sc;
-#endif // !_WIN32
-
         u_int8_t Data8;
 
-#ifndef _WIN32
         sc = device_get_softc(dev);
-#endif // !_WIN32
 
 #ifdef ENABLE_FIBER_SUPPORT
         if (HW_FIBER_MODE_ENABLED(sc))
@@ -767,9 +690,7 @@ device_t		dev;
 #endif //ENABLE_FIBER_SUPPORT
 
         if (sc->re_dash) {
-#ifndef _WIN32
                 re_set_wol_linkspeed(sc);
-#endif // !_WIN32
                 return;
         }
 
@@ -848,8 +769,6 @@ device_t		dev;
                 CSR_WRITE_1(sc, RE_PMCH, CSR_READ_1(sc, RE_PMCH) & ~(BIT_6|BIT_7));
 }
 
-#ifndef _WIN32
-
 /*
 static void re_tx_dma_map_buf(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 {
@@ -925,7 +844,6 @@ device_t		dev;
         return(ENXIO);
 }
 
-#endif // !_WIN32
 
 static u_int32_t re_eri_read_with_oob_base_address(struct re_softc *sc, int addr, int len, int type, const u_int32_t base_address)
 {
@@ -1034,8 +952,6 @@ static int re_eri_write(struct re_softc *sc, int addr, int len, u_int32_t value,
 {
         return re_eri_write_with_oob_base_address(sc, addr, len, value, type, 0);
 }
-
-#ifndef _WIN32
 
 static void
 re_dma_map_addr(void *arg, bus_dma_segment_t *segs, int nseg, int error)
@@ -1292,8 +1208,6 @@ static void set_rxbufsize(struct re_softc *sc)
                 sc->re_rx_desc_buf_sz += 1;
         CSR_WRITE_2(sc, RE_RxMaxSize, sc->re_rx_desc_buf_sz);
 }
-
-#endif // !_WIN32
 
 static void re_enable_cfg9346_write(struct re_softc *sc)
 {
@@ -2381,8 +2295,6 @@ static void re_hw_mac_mcu_config(struct re_softc *sc)
         }
 }
 
-#ifndef _WIN32
-
 #define ISRIMR_DASH_TYPE2_TX_DISABLE_IDLE BIT_5
 static void Dash2DisableTx(struct re_softc *sc)
 {
@@ -2430,8 +2342,6 @@ static void Dash2DisableTxRx(struct re_softc *sc)
         }
 }
 
-#endif // !_WIN32
-
 static inline bool
 is_zero_ether_addr(const u_int8_t * addr)
 {
@@ -2461,11 +2371,7 @@ is_valid_ether_addr(const u_int8_t * addr)
 static inline void
 random_ether_addr(u_int8_t * dst)
 {
-#ifdef _WIN32
-        BCryptGenRandom(NULL, dst, 6, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
-#else // _WIN32
         arc4rand(dst, 6, 0);
-#endif // _WIN32
 
         dst[0] &= 0xfe;
         dst[0] |= 0x02;
@@ -2515,11 +2421,7 @@ re_disable_magic_packet(struct re_softc *sc)
                 CSR_WRITE_1(sc, RE_CFG3, CSR_READ_1(sc, RE_CFG3) & ~RL_CFG3_WOL_MAGIC);
 }
 
-#ifdef _WIN32
-void re_exit_oob(struct re_softc *sc)
-#else // _WIN32
 static void re_exit_oob(struct re_softc *sc)
-#endif // _WIN32
 {
         u_int16_t data16;
         int i;
@@ -2542,16 +2444,12 @@ static void re_exit_oob(struct re_softc *sc)
         case MACFG_73:
         case MACFG_80:
         case MACFG_81:
-#ifndef _WIN32
                 Dash2DisableTxRx(sc);
-#endif // !_WIN32
                 break;
         }
 
-#ifndef _WIN32
         if (sc->re_dash)
                 re_driver_start(sc);
-#endif // !_WIN32
 
         switch(sc->re_type) {
         case MACFG_56:
@@ -2774,11 +2672,7 @@ static void re_exit_oob(struct re_softc *sc)
         re_hw_mac_mcu_config(sc);
 }
 
-#ifdef _WIN32
-void re_hw_init(struct re_softc *sc)
-#else // _WIN32
 static void re_hw_init(struct re_softc *sc)
-#endif // _WIN32
 {
         /*
         * disable EDT.
@@ -2893,11 +2787,7 @@ static void re_hw_init(struct re_softc *sc)
         }
 }
 
-#ifdef _WIN32
-void re_rar_set(struct re_softc *sc, u_int8_t *eaddr)
-#else // _WIN32
 static void re_rar_set(struct re_softc *sc, u_int8_t *eaddr)
-#endif // _WIN32
 {
         re_enable_cfg9346_write(sc);
 
@@ -2931,16 +2821,9 @@ static void re_rar_set(struct re_softc *sc, u_int8_t *eaddr)
         re_disable_cfg9346_write(sc);
 }
 
-#ifdef _WIN32
-void re_get_hw_mac_address(struct re_softc *sc, u_int8_t *eaddr)
-#else // _WIN32
 static void re_get_hw_mac_address(struct re_softc *sc, u_int8_t *eaddr)
-#endif // _WIN32
 {
-#ifndef _WIN32
         device_t dev = sc->dev;
-#endif // !_WIN32
-
         u_int16_t re_eeid = 0;
         int i;
 
@@ -2994,13 +2877,6 @@ static void re_get_hw_mac_address(struct re_softc *sc, u_int8_t *eaddr)
                 break;
         }
 
-#ifdef _WIN32
-        if (!is_valid_ether_addr(eaddr)) {
-            for (i = 0; i < ETHER_ADDR_LEN; i++)
-                eaddr[i] = CSR_READ_1(sc, RE_IDR0 + i);
-        }
-#endif // _WIN32
-
         if (!is_valid_ether_addr(eaddr)) {
                 device_printf(dev,"Invalid ether addr: %6D\n", eaddr, ":");
                 random_ether_addr(eaddr);
@@ -3011,16 +2887,9 @@ static void re_get_hw_mac_address(struct re_softc *sc, u_int8_t *eaddr)
         re_rar_set(sc, eaddr);
 }
 
-#ifdef _WIN32
-int re_check_mac_version(struct re_softc *sc)
-#else // _WIN32
 static int re_check_mac_version(struct re_softc *sc)
-#endif // _WIN32
 {
-#ifndef _WIN32
         device_t dev = sc->dev;
-#endif // !_WIN32
-
         int error = 0;
 
         switch(CSR_READ_4(sc, RE_TXCFG) & 0xFCF00000) {
@@ -3447,9 +3316,6 @@ static int re_check_mac_version(struct re_softc *sc)
         case RT_DEVICEID_8161:
         case RT_DEVICEID_8162:
         case RT_DEVICEID_8125:
-#ifdef _WIN32
-        case RT_DEVICEID_3000:
-#endif // _WIN32
         case RT_DEVICEID_8126:
                 //do nothing
                 break;
@@ -3461,11 +3327,7 @@ static int re_check_mac_version(struct re_softc *sc)
         return error;
 }
 
-#ifdef _WIN32
-void re_init_software_variable(struct re_softc *sc)
-#else // _WIN32
 static void re_init_software_variable(struct re_softc *sc)
-#endif // _WIN32
 {
         switch(sc->re_device_id) {
         case RT_DEVICEID_8168:
@@ -3473,9 +3335,6 @@ static void re_init_software_variable(struct re_softc *sc)
         case RT_DEVICEID_8162:
         case RT_DEVICEID_8136:
         case RT_DEVICEID_8125:
-#ifdef _WIN32
-        case RT_DEVICEID_3000:
-#endif // _WIN32
         case RT_DEVICEID_8126:
                 sc->re_if_flags |= RL_FLAG_PCIE;
                 break;
@@ -3544,19 +3403,12 @@ static void re_init_software_variable(struct re_softc *sc)
         }
 
         if (HW_SUPP_SERDES_PHY(sc))
-#ifdef _WIN32
-                sc->eee_enable = 0;
-#else // _WIN32
                 eee_enable = 0;
-#endif // _WIN32
 
         if (HW_DASH_SUPPORT_DASH(sc))
                 sc->re_dash = re_check_dash(sc);
 
         if (sc->re_dash) {
-#ifdef _WIN32
-                sc->re_dash = 0;
-#else // _WIN32
                 if (HW_DASH_SUPPORT_TYPE_3(sc)) {
                         u_int64_t CmacMemPhysAddress;
                         bus_space_handle_t cmac_ioaddr;
@@ -3576,26 +3428,21 @@ static void re_init_software_variable(struct re_softc *sc)
                                         sc->re_mapped_cmac_handle = cmac_ioaddr;
                         }
                 }
-#endif // _WIN32
         }
 
         switch(sc->re_type) {
         case MACFG_61:
         case MACFG_62:
         case MACFG_67:
-#ifndef _WIN32
                 sc->re_cmac_handle = sc->re_bhandle;
                 sc->re_cmac_tag = sc->re_btag;
-#endif // !_WIN32
                 break;
         case MACFG_70:
         case MACFG_71:
         case MACFG_72:
         case MACFG_73:
-#ifndef _WIN32
                 sc->re_cmac_handle = sc->re_mapped_cmac_handle;
                 sc->re_cmac_tag = sc->re_mapped_cmac_tag;
-#endif // !_WIN32
                 break;
         }
 
@@ -3776,9 +3623,7 @@ static void re_init_software_variable(struct re_softc *sc)
         case MACFG_90:
         case MACFG_91:
         case MACFG_92:
-#ifndef _WIN32
                 sc->re_hw_enable_msi_msix = TRUE;
-#endif // !_WIN32
                 break;
         }
 
@@ -3803,9 +3648,7 @@ static void re_init_software_variable(struct re_softc *sc)
         case MACFG_43:
         case MACFG_54:
         case MACFG_55:
-#ifndef _WIN32
                 sc->re_coalesce_tx_pkt = TRUE;
-#endif // !_WIN32
                 break;
         }
 
@@ -4005,11 +3848,7 @@ static void re_init_software_variable(struct re_softc *sc)
                 RE_UNLOCK(sc);
         }
 
-#ifdef _WIN32
-        // TODO: Update Link State
-#else // _WIN32
         sc->link_state = LINK_STATE_UNKNOWN;
-#endif // _WIN32
 
 #ifdef ENABLE_FIBER_SUPPORT
         if (HW_FIBER_MODE_ENABLED(sc))
@@ -4077,11 +3916,7 @@ static void re_disable_ocp_phy_power_saving(struct re_softc *sc)
         }
 }
 
-#ifdef _WIN32
-void re_hw_d3_para(struct re_softc *sc)
-#else
 static void re_hw_d3_para(struct re_softc *sc)
-#endif
 {
         switch (sc->re_type) {
         case MACFG_59:
@@ -4105,8 +3940,6 @@ static void re_hw_d3_para(struct re_softc *sc)
                 break;
         }
 }
-
-#ifndef _WIN32
 
 static void
 re_add_sysctls(struct re_softc *sc)
@@ -5456,7 +5289,6 @@ re_resume(device_t dev)
         return (0);
 }
 
-#endif // !_WIN32
 
 static void
 ClearAndSetPCIePhyBit(
@@ -5530,8 +5362,6 @@ re_set_offset79(struct re_softc *sc, u_int8_t setting)
         pci_write_config(sc->dev, 0x79, data8, 1);
 }
 
-#ifndef _WIN32
-
 /*
  * Stop all chip I/O so that the kernel's probe routines don't
  * get confused by errant DMAs when rebooting.
@@ -5567,8 +5397,6 @@ device_t		dev;
         return 0;
 }
 
-#endif // !_WIN32
-
 static void re_set_eee_lpi_timer(struct re_softc *sc)
 {
         struct ifnet		*ifp;
@@ -5597,11 +5425,7 @@ static void re_set_eee_lpi_timer(struct re_softc *sc)
         }
 }
 
-#ifdef _WIN32
-void re_hw_start_unlock(struct re_softc *sc)
-#else // _WIN32
 static void re_hw_start_unlock(struct re_softc *sc)
-#endif // _WIN32
 {
         struct ifnet		*ifp;
         u_int32_t		macver;
@@ -5611,10 +5435,8 @@ static void re_hw_start_unlock(struct re_softc *sc)
 
         ifp = RE_GET_IFNET(sc);
 
-#ifndef _WIN32
         /* Init descriptors. */
         re_var_init(sc);
-#endif // !_WIN32
 
         re_enable_cfg9346_write(sc);
 
@@ -7010,10 +6832,8 @@ static void re_hw_start_unlock(struct re_softc *sc)
                 break;
         }
 
-#ifndef _WIN32
         //clear wol
         re_clrwol(sc);
-#endif // !_WIN32
 
         data16 = CSR_READ_2(sc, RE_CPlusCmd);
         if ((ifp->if_capenable & IFCAP_VLAN_HWTAGGING) != 0)
@@ -7053,18 +6873,14 @@ static void re_hw_start_unlock(struct re_softc *sc)
                 CSR_WRITE_1(sc, RE_COMMAND, RE_CMD_TX_ENB | RE_CMD_RX_ENB);
         }
 
-#ifndef _WIN32
         ifp->if_drv_flags |= IFF_DRV_RUNNING;
         ifp->if_drv_flags &= ~IFF_DRV_OACTIVE;
-#endif // !_WIN32
 
         /*
         * Enable interrupts.
         */
         CSR_WRITE_2(sc, RE_IMR, RE_INTRS);
 }
-
-#ifndef _WIN32
 
 static void re_init_unlock(void *xsc)  	/* Software & Hardware Initialize */
 {
@@ -7128,13 +6944,7 @@ static void re_init(void *xsc)  	/* Software & Hardware Initialize */
         re_start_timer(sc);
 }
 
-#endif // !_WIN32
-
-#ifdef _WIN32
-void re_hw_start_unlock_8125(struct re_softc *sc)
-#else // _WIN32
 static void re_hw_start_unlock_8125(struct re_softc *sc)
-#endif // _WIN32
 {
         struct ifnet		*ifp;
         u_int32_t		macver;
@@ -7142,10 +6952,8 @@ static void re_hw_start_unlock_8125(struct re_softc *sc)
 
         ifp = RE_GET_IFNET(sc);
 
-#ifndef _WIN32
         /* Init descriptors. */
         re_var_init(sc);
-#endif // !_WIN32
 
         re_enable_cfg9346_write(sc);
 
@@ -7436,10 +7244,8 @@ static void re_hw_start_unlock_8125(struct re_softc *sc)
         _re_enable_aspm_clkreq_lock(sc, 1);
         re_enable_force_clkreq(sc, 0);;
 
-#ifndef _WIN32
         //clear wol
         re_clrwol(sc);
-#endif // !_WIN32
 
         //Interrupt Mitigation
         CSR_WRITE_4(sc, 0x0A00, 0x00630063);
@@ -7467,18 +7273,14 @@ static void re_hw_start_unlock_8125(struct re_softc *sc)
         /* Enable transmit and receive.*/
         CSR_WRITE_1(sc, RE_COMMAND, RE_CMD_TX_ENB | RE_CMD_RX_ENB);
 
-#ifndef _WIN32
         ifp->if_drv_flags |= IFF_DRV_RUNNING;
         ifp->if_drv_flags &= ~IFF_DRV_OACTIVE;
-#endif // !_WIN32
 
         /*
         * Enable interrupts.
         */
         CSR_WRITE_4(sc, RE_IMR0_8125, RE_INTRS);
 }
-
-#ifndef _WIN32
 
 /*
  * Initialize the transmit descriptors.
@@ -7545,13 +7347,7 @@ static int re_var_init(struct re_softc *sc)
         return 0;
 }
 
-#endif // !_WIN32
-
-#ifdef _WIN32
-void re_reset(struct re_softc *sc)
-#else // _WIN32
 static void re_reset(struct re_softc *sc)
-#endif // _WIN32
 {
         register int		i;
 
@@ -7651,11 +7447,7 @@ static void re_reset(struct re_softc *sc)
         return;
 }
 
-#ifdef _WIN32
-u_int8_t re_link_ok(struct re_softc *sc)
-#else
 static u_int8_t re_link_ok(struct re_softc *sc)
-#endif
 {
         u_int8_t	retval;
 
@@ -7663,18 +7455,6 @@ static u_int8_t re_link_ok(struct re_softc *sc)
 
         return retval;
 }
-
-#ifdef _WIN32
-
-u_int8_t re_link_autoneg(struct re_softc* sc) {
-    MP_WritePhyUshort(sc, 0x1F, 0x0000);
-    u_int16_t aner = MP_ReadPhyUshort(sc, MII_ANER);
-    u_int16_t bmsr = MP_ReadPhyUshort(sc, MII_BMSR);
-
-    return ((aner & ANER_LPAN) && (bmsr & BMSR_ACOMP)) ? 1 : 0;
-}
-
-#endif // _WIN32
 
 static void
 re_set_wol_linkspeed(struct re_softc *sc)
@@ -7708,9 +7488,6 @@ re_set_wol_linkspeed(struct re_softc *sc)
                 ClearEthPhyOcpBit(sc, 0xA5D4, RTK_ADVERTISE_5000FULL);
         /*	FALLTHROUGH */
         case RT_DEVICEID_8125:
-#ifdef _WIN32
-    case RT_DEVICEID_3000:
-#endif // _WIN32
         case RT_DEVICEID_8162:
                 ClearEthPhyOcpBit(sc, 0xA5D4, RTK_ADVERTISE_2500FULL);
         /*	FALLTHROUGH */
@@ -7729,9 +7506,6 @@ re_set_wol_linkspeed(struct re_softc *sc)
         switch(sc->re_device_id) {
         case RT_DEVICEID_8126:
         case RT_DEVICEID_8125:
-#ifdef _WIN32
-        case RT_DEVICEID_3000:
-#endif // _WIN32
         case RT_DEVICEID_8162:
         case RT_DEVICEID_8169:
         case RT_DEVICEID_8169SC:
@@ -7747,8 +7521,6 @@ re_set_wol_linkspeed(struct re_softc *sc)
                 break;
         }
 }
-
-#ifndef _WIN32
 
 static void
 re_setwol(struct re_softc *sc)
@@ -7850,19 +7622,12 @@ re_clrwol(struct re_softc *sc)
         re_disable_cfg9346_write(sc);
 }
 
-#endif // !_WIN32
-
 /*
  * Stop the adapter and free any mbufs allocated to the
  * RX and TX lists.
  */
-#ifdef _WIN32
-void re_stop(struct re_softc *sc) /* Stop Driver */
-#else
 static void re_stop(struct re_softc *sc)  	/* Stop Driver */
-#endif
 {
-#ifndef _WIN32
         struct ifnet		*ifp;
 
         /*	RE_LOCK_ASSERT(sc);*/
@@ -7873,7 +7638,6 @@ static void re_stop(struct re_softc *sc)  	/* Stop Driver */
 #endif
 
         re_stop_timer(sc);
-#endif // !_WIN32
 
         /*
          * Disable accepting frames to put RX MAC into idle state.
@@ -7927,7 +7691,6 @@ static void re_stop(struct re_softc *sc)  	/* Stop Driver */
 
         re_reset(sc);
 
-#ifndef _WIN32
         /*
          * Free the TX list buffers.
          */
@@ -7949,12 +7712,9 @@ static void re_stop(struct re_softc *sc)  	/* Stop Driver */
         }
 
         ifp->if_drv_flags &= ~(IFF_DRV_RUNNING | IFF_DRV_OACTIVE);
-#endif // !_WIN32
 
         return;
 }
-
-#ifndef _WIN32
 
 /*
  * Main transmit routine.
@@ -9089,48 +8849,16 @@ struct re_softc		*sc;
         return;
 }
 
-#endif // !_WIN32
-
-#ifdef _WIN32
-void re_set_rx_packet_filter(struct re_softc* sc)
-#else // _WIN32
 static void re_set_rx_packet_filter(sc)
 struct re_softc		*sc;
-#endif // _WIN32
 {
-#ifndef _WIN32
         struct ifnet		*ifp;
-#endif // !_WIN32
-
         u_int32_t		rxfilt;
 
-#ifndef _WIN32
         ifp = RE_GET_IFNET(sc);
-#endif // !_WIN32
 
         rxfilt = CSR_READ_4(sc, RE_RXCFG);
 
-#ifdef _WIN32
-        rxfilt &= ~(RE_RXCFG_RX_ALLPHYS | RE_RXCFG_RX_INDIV |
-            RE_RXCFG_RX_MULTI | RE_RXCFG_RX_BROAD |
-            RE_RXCFG_RX_RUNT | RE_RXCFG_RX_ERRPKT);
-
-        NET_PACKET_FILTER_FLAGS flags = sc->dev->PacketFilterFlags;
-
-        if (flags & NetPacketFilterFlagPromiscuous) {
-            rxfilt |= (
-                RE_RXCFG_RX_ALLPHYS | RE_RXCFG_RX_INDIV |
-                RE_RXCFG_RX_MULTI | RE_RXCFG_RX_BROAD |
-                RE_RXCFG_RX_RUNT | RE_RXCFG_RX_ERRPKT
-                );
-        }
-        else {
-            rxfilt |= ((flags & NetPacketFilterFlagAllMulticast) ? (RE_RXCFG_RX_ALLPHYS | RE_RXCFG_RX_MULTI) : 0);
-            rxfilt |= ((flags & NetPacketFilterFlagMulticast) ? (RE_RXCFG_RX_ALLPHYS | RE_RXCFG_RX_MULTI) : 0);
-            rxfilt |= ((flags & NetPacketFilterFlagBroadcast) ? RE_RXCFG_RX_BROAD : 0);
-            rxfilt |= ((flags & NetPacketFilterFlagDirected) ? RE_RXCFG_RX_INDIV : 0);
-        }
-#else // _WIN32
         rxfilt |= RE_RXCFG_RX_INDIV;
 
         if (ifp->if_flags & (IFF_MULTICAST | IFF_ALLMULTI | IFF_PROMISC)) {
@@ -9150,55 +8878,13 @@ struct re_softc		*sc;
         } else {
                 rxfilt &= ~RE_RXCFG_RX_BROAD;
         }
-#endif // _WIN32
 
         CSR_WRITE_4(sc, RE_RXCFG, rxfilt);
 
-#ifdef _WIN32
-        typedef union {
-            struct {
-                uint32_t mask0;
-                uint32_t mask4;
-            };
-            uint8_t bytes[32];
-        } MarRegs;
-
-        MarRegs regs = { 0 };
-
-        if (flags & (NetPacketFilterFlagPromiscuous | NetPacketFilterFlagAllMulticast)) {
-            regs.mask0 = 0xffffffff;
-            regs.mask4 = 0xffffffff;
-        }
-        else {
-            for (UINT i = 0; i < sc->dev->MCAddressCount; i++) {
-                UCHAR byte, bit;
-                NET_ADAPTER_LINK_LAYER_ADDRESS address = sc->dev->MCList[i];
-                GetMulticastBit(&sc->dev->MCList[i], &byte, &bit);
-                regs.bytes[byte] |= bit;
-            }
-        }
-
-        u_int8_t  enable_cfg_reg_write = 0;
-
-        if (sc->re_type == MACFG_5 || sc->re_type == MACFG_6)
-            enable_cfg_reg_write = 1;
-
-        if (enable_cfg_reg_write)
-            re_enable_cfg9346_write(sc);
-
-        CSR_WRITE_4(sc, RE_MAR0, regs.mask0);
-        CSR_WRITE_4(sc, RE_MAR4, regs.mask4);
-
-        if (enable_cfg_reg_write)
-            re_disable_cfg9346_write(sc);
-#else // _WIN32
         re_setmulti(sc);
-#endif // _WIN32
 
         return;
 }
-
-#ifndef _WIN32
 
 /*
  * Program the 64-bit multicast hash filter.
@@ -9472,13 +9158,7 @@ caddr_t			data;
         return(error);
 }
 
-#endif // !_WIN32
-
-#ifdef _WIN32
-void re_link_on_patch(struct re_softc *sc)
-#else // _WIN32
 static void re_link_on_patch(struct re_softc *sc)
-#endif // _WIN32
 {
         struct ifnet		*ifp;
 
@@ -9495,11 +9175,7 @@ static void re_link_on_patch(struct re_softc *sc)
                         re_eri_write(sc, 0x1bc, 4, 0x0000001f, ERIAR_ExGMAC);
                         re_eri_write(sc, 0x1dc, 4, 0x0000002d, ERIAR_ExGMAC);
                 }
-#ifdef _WIN32
-        } else if ((sc->re_type == MACFG_38 || sc->re_type == MACFG_39)) {
-#else
         } else if ((sc->re_type == MACFG_38 || sc->re_type == MACFG_39) && (ifp->if_flags & IFF_UP)) {
-#endif // _WIN32
                 if (sc->re_type == MACFG_38 && (CSR_READ_1(sc, RE_PHY_STATUS) & RL_PHY_STATUS_10M)) {
                         CSR_WRITE_4(sc, RE_RXCFG, CSR_READ_4(sc, RE_RXCFG) | RE_RXCFG_RX_ALLPHYS);
                 } else if (sc->re_type == MACFG_39) {
@@ -9514,11 +9190,7 @@ static void re_link_on_patch(struct re_softc *sc)
                                 re_eri_write(sc, 0x1dc, 4, 0x0000003f, ERIAR_ExGMAC);
                         }
                 }
-#ifdef _WIN32
-        } else if ((sc->re_type == MACFG_36 || sc->re_type == MACFG_37) && sc->eee_enable == 1) {
-#else // _WIN32
         } else if ((sc->re_type == MACFG_36 || sc->re_type == MACFG_37) && eee_enable == 1) {
-#endif // _WIN32
                 /*Full -Duplex  mode*/
                 if (CSR_READ_1(sc, RE_PHY_STATUS) & RL_PHY_STATUS_FULL_DUP) {
                         MP_WritePhyUshort(sc, 0x1F, 0x0006);
@@ -9546,11 +9218,7 @@ static void re_link_on_patch(struct re_softc *sc)
                     sc->re_type == MACFG_81 || sc->re_type == MACFG_82 ||
                     sc->re_type == MACFG_83 || sc->re_type == MACFG_90 ||
                     sc->re_type == MACFG_91 || sc->re_type == MACFG_92) &&
-#ifdef _WIN32
-                    true) {
-#else // _WIN32
                    (ifp->if_flags & IFF_UP)) {
-#endif // _WIN32
                 if (CSR_READ_1(sc, RE_PHY_STATUS) & RL_PHY_STATUS_FULL_DUP)
                         CSR_WRITE_4(sc, RE_TXCFG, (CSR_READ_4(sc, RE_TXCFG) | (BIT_24 | BIT_25)) & ~BIT_19);
                 else
@@ -9582,12 +9250,8 @@ static void re_link_on_patch(struct re_softc *sc)
                 }
         }
 
-#ifndef _WIN32
         re_init_unlock(sc);
-#endif // !_WIN32
 }
-
-#ifndef _WIN32
 
 static void re_link_down_patch(struct re_softc *sc)
 {
@@ -9703,29 +9367,18 @@ struct ifnet		*ifp;
 }
 #endif
 
-#endif !_WIN32
-
 /*
  * Set media options.
  */
-#ifdef _WIN32
-int re_ifmedia_upd(struct re_softc* sc)
-#else // _WIN32
 static int re_ifmedia_upd(struct ifnet *ifp)
-#endif // _WIN32
 {
-#ifndef _WIN32
         struct re_softc	*sc = ifp->if_softc;
         struct ifmedia	*ifm = &sc->media;
-#endif // !_WIN32
-
         int anar;
         int gbcr;
 
-#ifndef _WIN32
         if (IFM_TYPE(ifm->ifm_media) != IFM_ETHER)
                 return(EINVAL);
-#endif // !_WIN32
 
         if (sc->re_type == MACFG_68 || sc->re_type == MACFG_69 ||
             sc->re_type == MACFG_70 || sc->re_type == MACFG_71 ||
@@ -9741,91 +9394,7 @@ static int re_ifmedia_upd(struct ifnet *ifp)
                 MP_WritePhyUshort(sc, 0x1F, 0x0000);
         }
 
-#ifdef _WIN32
-        gbcr = MP_ReadPhyUshort(sc, MII_100T2CR) &
-            ~(GTCR_ADV_1000TFDX | GTCR_ADV_1000THDX);
-        anar = MP_ReadPhyUshort(sc, MII_ANAR) &
-            ~(ANAR_10 | ANAR_10_FD | ANAR_TX | ANAR_TX_FD | ANAR_FC | ANAR_PAUSE_ASYM);
 
-        switch (sc->dev->SpeedDuplex) {
-        case RtSpeedDuplexModeAutoNegotiation:
-            anar = (ANAR_10 | ANAR_10_FD | ANAR_TX | ANAR_TX_FD);
-            gbcr |= (GTCR_ADV_1000TFDX | GTCR_ADV_1000THDX);
-            break;
-        case RtSpeedDuplexMode1GFullDuplex:
-            gbcr |= GTCR_ADV_1000TFDX;
-            break;
-        case RtSpeedDuplexMode1GHalfDuplex:
-            gbcr |= GTCR_ADV_1000THDX;
-            break;
-        case RtSpeedDuplexMode100MFullDuplex:
-            anar |= ANAR_TX_FD;
-            break;
-        case RtSpeedDuplexMode100MHalfDuplex:
-            anar |= ANAR_TX;
-            break;
-        case RtSpeedDuplexMode10MFullDuplex:
-            anar |= ANAR_10_FD;
-            break;
-        case RtSpeedDuplexMode10MHalfDuplex:
-            anar |= ANAR_10;
-            break;
-        default:
-            DBGPRINT(sc, "Unsupported media type\n");
-            return(0);
-        }
-
-        if (sc->dev->SpeedDuplex == RtSpeedDuplexMode10MFullDuplex ||
-            sc->dev->SpeedDuplex == RtSpeedDuplexMode10MHalfDuplex) {
-            if (sc->re_type == MACFG_13) {
-                MP_WritePhyUshort(sc, MII_BMCR, 0x8000);
-            }
-        }
-
-        if (sc->re_device_id == RT_DEVICEID_8162)
-            ClearEthPhyOcpBit(sc, 0xA5D4, RTK_ADVERTISE_2500FULL);
-
-        MP_WritePhyUshort(sc, 0x1F, 0x0000);
-        if (sc->re_device_id == RT_DEVICEID_8169 || sc->re_device_id == RT_DEVICEID_8169SC ||
-            sc->re_device_id == RT_DEVICEID_8168 || sc->re_device_id == RT_DEVICEID_8161 ||
-            sc->re_device_id == RT_DEVICEID_8162) {
-            switch (sc->dev->FlowControl) {
-            case FlowControlTxOnly:
-                anar |= ANAR_PAUSE_ASYM;
-                break;
-            case FlowControlRxOnly:
-                anar |= ANAR_FC;
-                break;
-            case FlowControlTxRx:
-                anar |= (ANAR_FC | ANAR_PAUSE_ASYM);
-                break;
-            }
-
-            MP_WritePhyUshort(sc, MII_ANAR, anar);
-            MP_WritePhyUshort(sc, MII_100T2CR, gbcr);
-            MP_WritePhyUshort(sc, MII_BMCR, BMCR_RESET | BMCR_AUTOEN | BMCR_STARTNEG);
-        }
-        else if (sc->re_type == MACFG_36) {
-            switch (sc->dev->FlowControl) {
-            case FlowControlTxOnly:
-                anar |= ANAR_PAUSE_ASYM;
-                break;
-            case FlowControlRxOnly:
-                anar |= ANAR_FC;
-                break;
-            case FlowControlTxRx:
-                anar |= (ANAR_FC | ANAR_PAUSE_ASYM);
-                break;
-            }
-
-            MP_WritePhyUshort(sc, MII_ANAR, anar);
-            MP_WritePhyUshort(sc, MII_BMCR, BMCR_RESET | BMCR_AUTOEN | BMCR_STARTNEG);
-        }
-        else {
-            MP_WritePhyUshort(sc, MII_ANAR, anar | 1);
-            MP_WritePhyUshort(sc, MII_BMCR, BMCR_AUTOEN | BMCR_STARTNEG);
-        }
-#else // _WIN32
         switch (IFM_SUBTYPE(ifm->ifm_media)) {
         case IFM_AUTO:
                 anar = ANAR_TX_FD |
@@ -9899,30 +9468,20 @@ static int re_ifmedia_upd(struct ifnet *ifp)
                 MP_WritePhyUshort(sc, MII_ANAR, anar | 1);
                 MP_WritePhyUshort(sc, MII_BMCR, BMCR_AUTOEN | BMCR_STARTNEG);
         }
-#endif // _WIN32
 
         return(0);
 }
 
-#ifdef _WIN32
-int re_ifmedia_upd_8125(struct re_softc *sc)
-#else // _WIN32
 static int re_ifmedia_upd_8125(struct ifnet *ifp)
-#endif // _WIN32
 {
-#ifndef _WIN32
         struct re_softc	*sc = ifp->if_softc;
         struct ifmedia	*ifm = &sc->media;
-#endif // !_WIN32
-
         int anar;
         int gbcr;
         int cr2500;
 
-#ifndef _WIN32
         if (IFM_TYPE(ifm->ifm_media) != IFM_ETHER)
                 return(EINVAL);
-#endif // !_WIN32
 
         //Disable Giga Lite
         ClearEthPhyOcpBit(sc, 0xA428, BIT_9);
@@ -9937,66 +9496,6 @@ static int re_ifmedia_upd_8125(struct ifnet *ifp)
         anar = MP_ReadPhyUshort(sc, MII_ANAR) &
                ~(ANAR_10 | ANAR_10_FD | ANAR_TX | ANAR_TX_FD | ANAR_FC | ANAR_PAUSE_ASYM);
 
-#ifdef _WIN32
-        switch (sc->dev->SpeedDuplex) {
-        case RtSpeedDuplexModeAutoNegotiation:
-            if (sc->re_device_id == RT_DEVICEID_8126)
-                cr2500 |= RTK_ADVERTISE_5000FULL;
-            cr2500 |= RTK_ADVERTISE_2500FULL;
-            anar = (ANAR_10 | ANAR_10_FD | ANAR_TX | ANAR_TX_FD);
-            gbcr |= (GTCR_ADV_1000TFDX | GTCR_ADV_1000THDX);
-            break;
-        case RtSpeedDuplexMode5GFullDuplex:
-            if (sc->re_device_id == RT_DEVICEID_8126) {
-                cr2500 |= RTK_ADVERTISE_5000FULL;
-                break;
-            }
-            /*	FALLTHROUGH in case not 5000 supported */
-        case RtSpeedDuplexMode2GFullDuplex:
-            cr2500 |= RTK_ADVERTISE_2500FULL;
-            break;
-        case RtSpeedDuplexMode1GFullDuplex:
-            gbcr |= GTCR_ADV_1000TFDX;
-            break;
-        case RtSpeedDuplexMode1GHalfDuplex:
-            gbcr |= GTCR_ADV_1000THDX;
-            break;
-        case RtSpeedDuplexMode100MFullDuplex:
-            anar |= ANAR_TX_FD;
-            break;
-        case RtSpeedDuplexMode100MHalfDuplex:
-            anar |= ANAR_TX;
-            break;
-        case RtSpeedDuplexMode10MFullDuplex:
-            anar |= ANAR_10_FD;
-            break;
-        case RtSpeedDuplexMode10MHalfDuplex:
-            anar |= ANAR_10;
-            break;
-        default:
-            DBGPRINT(sc, "Unsupported media type\n");
-            return(0);
-        }
-
-        if (sc->dev->SpeedDuplex == RtSpeedDuplexMode10MFullDuplex ||
-            sc->dev->SpeedDuplex == RtSpeedDuplexMode10MHalfDuplex) {
-            if (sc->re_type == MACFG_13) {
-                MP_WritePhyUshort(sc, MII_BMCR, 0x8000);
-            }
-        }
-
-        switch (sc->dev->FlowControl) {
-        case FlowControlTxOnly:
-            anar |= ANAR_PAUSE_ASYM;
-            break;
-        case FlowControlRxOnly:
-            anar |= ANAR_FC;
-            break;
-        case FlowControlTxRx:
-            anar |= (ANAR_FC | ANAR_PAUSE_ASYM);
-            break;
-        }
-#else // _WIN32
         switch (IFM_SUBTYPE(ifm->ifm_media)) {
         case IFM_AUTO:
         case IFM_5000_T:
@@ -10036,22 +9535,15 @@ static int re_ifmedia_upd_8125(struct ifnet *ifp)
                 printf("re%d: Unsupported media type\n", sc->re_unit);
                 return(0);
         }
-#endif // _WIN32
 
         MP_WritePhyUshort(sc, 0x1F, 0x0000);
         MP_RealWritePhyOcpRegWord(sc, 0xA5D4, cr2500);
-#ifdef _WIN32
-        MP_WritePhyUshort(sc, MII_ANAR, anar);
-#else // _WIN32
         MP_WritePhyUshort(sc, MII_ANAR, anar | ANAR_FC | ANAR_PAUSE_ASYM);
-#endif // _WIN32
         MP_WritePhyUshort(sc, MII_100T2CR, gbcr);
         MP_WritePhyUshort(sc, MII_BMCR, BMCR_RESET | BMCR_AUTOEN | BMCR_STARTNEG);
 
         return(0);
 }
-
-#ifndef _WIN32
 
 /*
  * Report current media status.
@@ -10140,8 +9632,6 @@ struct ifmediareq	*ifmr;
 
         return;
 }
-
-#endif // !_WIN32
 
 static int re_enable_EEE(struct re_softc *sc)
 {
@@ -28902,10 +28392,7 @@ static void re_init_hw_phy_mcu(struct re_softc *sc)
 
 static void re_set_hw_phy_before_init_phy_mcu(struct re_softc *sc)
 {
-#ifndef _WIN32
         device_t dev = sc->dev;
-#endif // !_WIN32
-
         u_int16_t PhyRegValue;
 
         switch (sc->re_type) {
@@ -28935,11 +28422,7 @@ static void re_set_hw_phy_before_init_phy_mcu(struct re_softc *sc)
         }
 }
 
-#ifdef _WIN32
-void re_hw_phy_config(struct re_softc *sc)
-#else // _WIN32
 static void re_hw_phy_config(struct re_softc *sc)
-#endif // _WIN32
 {
         u_int16_t Data, PhyRegValue, TmpUshort;
         u_int32_t Data_u32;
@@ -35329,11 +34812,7 @@ static void re_hw_phy_config(struct re_softc *sc)
                 }
         }
 
-#ifdef _WIN32
-        if (sc->eee_enable == 1)
-#else // _WIN32
         if (eee_enable == 1)
-#endif // _WIN32
                 re_enable_EEE(sc);
         else
                 re_disable_EEE(sc);
@@ -36212,8 +35691,6 @@ static void OOB_notify(struct re_softc *sc, u_int8_t cmd)
         OCP_write(sc, 0x30, 1, 0x01);
 }
 
-#ifndef _WIN32
-
 void re_driver_start(struct re_softc *sc)
 {
         if (HW_DASH_SUPPORT_TYPE_2(sc) || HW_DASH_SUPPORT_TYPE_3(sc)) {
@@ -36286,8 +35763,6 @@ void re_driver_stop(struct re_softc *sc)
         }
 }
 
-#endif // !_WIN32
-
 /*----------------------------------------------------------------------------*/
 /*	8139 (CR9346) 9346 command register bits (offset 0x50, 1 byte)*/
 /*----------------------------------------------------------------------------*/
@@ -36333,14 +35808,10 @@ void re_driver_stop(struct re_softc *sc)
 /*
  * Shift out bit(s) to the EEPROM.
  */
-#ifdef _WIN32
-static void re_eeprom_ShiftOutBits(struct re_softc* sc, int data, int count)
-#else // _WIN32
 static void re_eeprom_ShiftOutBits(sc, data, count)
 struct re_softc		*sc;
 int			data;
 int 			count;
-#endif // _WIN32
 {
         u_int16_t x, mask;
 
@@ -36368,12 +35839,8 @@ int 			count;
 /*
  * Shift in bit(s) from the EEPROM.
  */
-#ifdef _WIN32
-static u_int16_t re_eeprom_ShiftInBits(struct re_softc* sc)
-#else // _WIN32
 static u_int16_t re_eeprom_ShiftInBits(sc)
 struct re_softc		*sc;
-#endif // _WIN32
 {
         u_int16_t x,d,i;
         x = CSR_READ_1(sc, RE_EECMD);
@@ -36400,12 +35867,8 @@ struct re_softc		*sc;
 /*
  * Clean up EEprom read/write setting
  */
-#ifdef _WIN32
-static void re_eeprom_EEpromCleanup(struct re_softc* sc)
-#else // _WIN32
 static void re_eeprom_EEpromCleanup(sc)
 struct re_softc		*sc;
-#endif // _WIN32
 {
         u_int16_t x;
         x = CSR_READ_1(sc, RE_EECMD);
@@ -36420,14 +35883,10 @@ struct re_softc		*sc;
 /*
  * Read a word of data stored in the EEPROM at address 'addr.'
  */
-#ifdef _WIN32
-static void re_eeprom_getword(struct re_softc* sc, int addr, u_int16_t* dest)
-#else // _WIN32
 static void re_eeprom_getword(sc, addr, dest)
 struct re_softc		*sc;
 int			addr;
 u_int16_t		*dest;
-#endif // _WIN32
 {
         u_int16_t x;
 
@@ -36457,16 +35916,12 @@ u_int16_t		*dest;
 /*
  * Read a sequence of words from the EEPROM.
  */
-#ifdef _WIN32
-static void re_read_eeprom(struct re_softc* sc, caddr_t dest, int off, int cnt, int swap)
-#else // _WIN32
 static void re_read_eeprom(sc, dest, off, cnt, swap)
 struct re_softc		*sc;
 caddr_t			dest;
 int			off;
 int			cnt;
 int			swap;
-#endif // _WIN32
 {
         int			i;
         u_int16_t		word = 0, *ptr;

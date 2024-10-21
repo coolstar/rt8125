@@ -1,0 +1,2 @@
+https://github.com/alexdupre/rtl_bsd_drv.git
+8efebf1423368e80b9872bfabb9a4a6a213277bb

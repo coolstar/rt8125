@@ -297,7 +297,7 @@ RxSlideBuffers(
 
         RtPostRxDescriptor(&rx->RxdBase[RxDescIdx],
             NetExtensionGetFragmentLogicalAddress(&rx->LogicalAddressExtension, index),
-            RxDescIdx == (rx->NumRxDesc - 1));
+            RxDescIdx == (rx->NumRxDesc - 1u));
 
         index = NetRingIncrementIndex(fr, index);
     } while (index != 0);
@@ -319,7 +319,7 @@ RxPostBuffers(
 
         RtPostRxDescriptor(&rx->RxdBase[RxDescIdx],
             NetExtensionGetFragmentLogicalAddress(&rx->LogicalAddressExtension, index),
-            RxDescIdx == (rx->NumRxDesc - 1));
+            RxDescIdx == (rx->NumRxDesc - 1u));
 
         fr->NextIndex = NetRingIncrementIndex(fr, fr->NextIndex);
     }
