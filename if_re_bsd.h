@@ -33,6 +33,7 @@
  */
 
 #ifndef _WIN32
+#include <netinet/in.h>
 #include <netinet/tcp_lro.h>
 #endif // !_WIN32
 
@@ -191,8 +192,11 @@
 #define	ERIAR_ByteEn_shift  12
 #define ERIAR_OOB 2
 
-
-
+/* IPC2 */
+#define	RE_IB2SOC_SET	0x0010
+#define	RE_IB2SOC_DATA	0x0014
+#define	RE_IB2SOC_CMD	0x0018
+#define	RE_IB2SOC_IMR	0x001C
 
 
 /* Direct PHY access registers only available on 8139 */
@@ -272,6 +276,8 @@
 
 #ifdef _WIN32
 #undef RE_INTRS
+// Remove: RE_ISR_RX_OVERRUN, RE_ISR_TDU
+// Add:    RE_ISR_LINKCHG
 #define RE_INTRS	\
 	(RE_ISR_TX_OK|RE_ISR_RX_OK|RE_ISR_RX_ERR|RE_ISR_TX_ERR|		\
 	RE_ISR_PKT_UNDERRUN|RE_ISR_LINKCHG|	\
@@ -588,6 +594,7 @@ struct re_chain_data {
 };
 
 #define HW_SUPPORT_MAC_MCU(_M)        ((_M)->HwSuppMacMcuVer > 0)
+#define HW_SUPPORT_OCP_CHANNEL(_M)    ((_M)->HwSuppOcpChannelVer > 0)
 
 //+++ From FreeBSD 9.0 +++
 
@@ -960,6 +967,10 @@ enum {
         MACFG_81,
         MACFG_82,
         MACFG_83,
+        MACFG_84,
+        MACFG_85,
+        MACFG_86,
+        MACFG_87,
 
         MACFG_90 = 90,
         MACFG_91,
@@ -1066,6 +1077,8 @@ struct re_softc {
 
         u_int8_t RequiredSecLanDonglePatch;
 
+        u_int8_t RequiredPfmPatch;
+
         u_int8_t RequirePhyMdiSwapPatch;
 
         u_int8_t  re_efuse_ver;
@@ -1092,16 +1105,22 @@ struct re_softc {
 
         u_int8_t	re_hw_supp_now_is_oob_ver;
 
-        u_int8_t hw_hw_supp_serdes_phy_ver;
+        u_int8_t 	hw_hw_supp_serdes_phy_ver;
+        u_int8_t	HwSuppOcpChannelVer;
 
         u_int8_t HwSuppDashVer;
         u_int8_t	re_dash;
+
+        u_int8_t AllowAccessDashOcp;
+        u_int32_t re_dash_fw_ver;
 
 #ifndef _WIN32
         bus_space_handle_t	re_mapped_cmac_handle;			/* bus space tag */
         bus_space_tag_t		re_mapped_cmac_tag;			/* bus space tag */
         bus_space_handle_t	re_cmac_handle;		/* bus space handle */
         bus_space_tag_t		re_cmac_tag;			/* bus space tag */
+        bus_space_handle_t	re_msix_tbl_handle;		/* bus space handle */
+        bus_space_tag_t		re_msix_tbl_tag;			/* bus space tag */
 #endif // !_WIN32
 
         u_int8_t HwPkgDet;
@@ -1127,6 +1146,7 @@ struct re_softc {
         void (*int_task)(void *, int);
         void (*int_task_poll)(void *, int);
         void (*hw_start_unlock)(struct re_softc *);
+        struct taskqueue *re_tq;
 #endif // !_WIN32
 };
 
@@ -1216,7 +1236,11 @@ enum bits {
 #define RE_CMAC_WRITE_4(sc, reg, val) ((sc->prohibit_access_reg)?:bus_space_write_4(sc->re_cmac_tag, sc->re_cmac_handle, reg, val))
 #define RE_CMAC_READ_1(sc, reg) ((sc->prohibit_access_reg)?0xFF:bus_space_read_1(sc->re_cmac_tag, sc->re_cmac_handle, reg))
 #define RE_CMAC_READ_2(sc, reg) ((sc->prohibit_access_reg)?0xFFFF:bus_space_read_2(sc->re_cmac_tag, sc->re_cmac_handle, reg))
-#define RE_CMAC_READ_4(sc, reg) (sc->prohibit_access_reg)?0xFFFFFFFF:bus_space_read_4(sc->re_cmac_tag, sc->re_cmac_handle, reg))
+#define RE_CMAC_READ_4(sc, reg) ((sc->prohibit_access_reg)?0xFFFFFFFF:bus_space_read_4(sc->re_cmac_tag, sc->re_cmac_handle, reg))
+
+/* msix table write/read MMIO register */
+#define RE_MSIX_TBL_WRITE_4(sc, reg, val) ((sc->re_res_pba == NULL)?:bus_space_write_4(sc->re_msix_tbl_tag, sc->re_msix_tbl_handle, reg, val))
+#define RE_MSIX_TBL_READ_4(sc, reg) ((sc->re_res_pba == NULL)?0xFFFFFFFF:bus_space_read_4(sc->re_msix_tbl_tag, sc->re_msix_tbl_handle, reg))
 
 #ifdef _WIN32
 #undef RE_CMAC_WRITE_1
@@ -1254,9 +1278,7 @@ enum bits {
 #define RT_DEVICEID_8162			0x8162		/* For RTL8168KB */
 #define RT_DEVICEID_8136			0x8136		/* For RTL8101E */
 #define RT_DEVICEID_8125			0x8125		/* For RTL8125 */
-#ifdef _WIN32
 #define RT_DEVICEID_3000			0x3000		/* For Killer E3000/E3100 with RTL8125 */
-#endif // _WIN32
 #define RT_DEVICEID_8126			0x8126		/* For RTL8126 */
 
 /*
@@ -1345,13 +1367,14 @@ enum bits {
 #define RTL8125_INT_CFG0_TIMEOUT0_BYPASS (0x0002)
 #define RTL8125_INT_CFG0_MITIGATION_BYPASS (0x0004)
 #define RTL8126_INT_CFG0_RDU_BYPASS (0x0010)
+#define RTL8125_INT_CFG0_MSIX_ENTRY_NUM_MODE (0x0020)
 
 //Ram Code Version
 #define NIC_RAMCODE_VERSION_8168E (0x0057)
 #define NIC_RAMCODE_VERSION_8168EVL (0x0055)
 #define NIC_RAMCODE_VERSION_8168F (0x0052)
 #define NIC_RAMCODE_VERSION_8411 (0x0044)
-#define NIC_RAMCODE_VERSION_8168G (0x0042)
+#define NIC_RAMCODE_VERSION_8168G (0x0048)
 #define NIC_RAMCODE_VERSION_8168GU (0x0001)
 #define NIC_RAMCODE_VERSION_8168EP (0x0019)
 #define NIC_RAMCODE_VERSION_8411B (0x0012)
@@ -1362,10 +1385,14 @@ enum bits {
 #define NIC_RAMCODE_VERSION_8125A_REV_A (0x0B11)
 #define NIC_RAMCODE_VERSION_8125A_REV_B (0x0B33)
 #define NIC_RAMCODE_VERSION_8125B_REV_A (0x0B17)
-#define NIC_RAMCODE_VERSION_8125B_REV_B (0x0B74)
+#define NIC_RAMCODE_VERSION_8125B_REV_B (0x0B99)
+#define NIC_RAMCODE_VERSION_8125BP_REV_A (0x0013)
+#define NIC_RAMCODE_VERSION_8125BP_REV_B (0x0001)
 #define NIC_RAMCODE_VERSION_8126A_REV_A (0x0023)
 #define NIC_RAMCODE_VERSION_8126A_REV_B (0x0033)
-#define NIC_RAMCODE_VERSION_8126A_REV_C (0x0001)
+#define NIC_RAMCODE_VERSION_8126A_REV_C (0x0051)
+#define NIC_RAMCODE_VERSION_8125D_REV_A (0x0016)
+#define NIC_RAMCODE_VERSION_8125D_REV_B (0x0001)
 
 #ifdef __alpha__
 #undef vtophys
@@ -1388,13 +1415,21 @@ enum bits {
 
 #define RE_REGS_SIZE     (256)
 
+#define OCP_REG_FIRMWARE_MAJOR_VERSION (0x120)
 #define RTL8168FP_OOBMAC_BASE 0xBAF70000
-#define HW_DASH_SUPPORT_DASH(_M)        ((_M)->HwSuppDashVer > 0 )
-#define HW_DASH_SUPPORT_TYPE_1(_M)        ((_M)->HwSuppDashVer == 1 )
-#define HW_DASH_SUPPORT_TYPE_2(_M)        ((_M)->HwSuppDashVer == 2 )
-#define HW_DASH_SUPPORT_TYPE_3(_M)        ((_M)->HwSuppDashVer == 3 )
+#define HW_DASH_SUPPORT_DASH(_M)        ((_M)->HwSuppDashVer > 0)
+#define HW_DASH_SUPPORT_TYPE_1(_M)        ((_M)->HwSuppDashVer == 1)
+#define HW_DASH_SUPPORT_TYPE_2(_M)        ((_M)->HwSuppDashVer == 2)
+#define HW_DASH_SUPPORT_TYPE_3(_M)        ((_M)->HwSuppDashVer == 3)
+#define HW_DASH_SUPPORT_TYPE_4(_M)        ((_M)->HwSuppDashVer == 4)
+#define HW_DASH_SUPPORT_CMAC(_M)        (HW_DASH_SUPPORT_TYPE_2(_M) || HW_DASH_SUPPORT_TYPE_3(_M))
+#define HW_DASH_SUPPORT_IPC2(_M)        (HW_DASH_SUPPORT_TYPE_4(_M))
+#define HW_DASH_SUPPORT_GET_FIRMWARE_VERSION(_M) (HW_DASH_SUPPORT_TYPE_2(_M) || \
+                                                  HW_DASH_SUPPORT_TYPE_3(_M) || \
+                                                  HW_DASH_SUPPORT_TYPE_4(_M))
 
 #define HW_SUPP_SERDES_PHY(_M)        ((_M)->hw_hw_supp_serdes_phy_ver > 0)
+#define HW_HAS_WRITE_PHY_MCU_RAM_CODE(_M)        ((_M)->re_hw_ram_code_ver == (_M)->re_sw_ram_code_ver)
 
 /*#define RE_DBG*/
 
