@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bsd.h"
 #include "if_re_bsd.h"
 #include "bsdexport.h"
 

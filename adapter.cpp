@@ -110,7 +110,7 @@ RtAdapterSetLinkLayerCapabilities(
         adapter->MaxSpeed);
 
     NetAdapterSetLinkLayerCapabilities(adapter->NetAdapter, &linkLayerCapabilities);
-    NetAdapterSetLinkLayerMtuSize(adapter->NetAdapter, adapter->bsdData.mtu);
+    NetAdapterSetLinkLayerMtuSize(adapter->NetAdapter, adapter->bsdData.if_net.if_mtu);
     NetAdapterSetPermanentLinkLayerAddress(adapter->NetAdapter, &adapter->PermanentAddress);
     NetAdapterSetCurrentLinkLayerAddress(adapter->NetAdapter, &adapter->CurrentAddress);
 }
@@ -200,7 +200,7 @@ RtAdapterSetOffloadCapabilities(
 
     const struct re_softc* sc = &adapter->bsdData;
 
-    BOOLEAN txSupported = (sc->if_capenable & IFCAP_TXCSUM) != 0;
+    BOOLEAN txSupported = (sc->if_net.if_capenable & IFCAP_TXCSUM) != 0;
     if (txSupported) {
         auto const layer3Flags = NetAdapterOffloadLayer3FlagIPv4NoOptions |
             NetAdapterOffloadLayer3FlagIPv4WithOptions |
@@ -222,7 +222,7 @@ RtAdapterSetOffloadCapabilities(
         NetAdapterOffloadSetTxChecksumCapabilities(adapter->NetAdapter, &txChecksumOffloadCapabilities);
     }
 
-    BOOLEAN rxSupported = (sc->if_capenable & IFCAP_RXCSUM) != 0;
+    BOOLEAN rxSupported = (sc->if_net.if_capenable & IFCAP_RXCSUM) != 0;
     if (rxSupported) {
         NET_ADAPTER_OFFLOAD_RX_CHECKSUM_CAPABILITIES rxChecksumOffloadCapabilities;
 
@@ -233,7 +233,7 @@ RtAdapterSetOffloadCapabilities(
         NetAdapterOffloadSetRxChecksumCapabilities(adapter->NetAdapter, &rxChecksumOffloadCapabilities);
     }
 
-    BOOLEAN gsoSupported = (sc->if_capenable & IFCAP_TSO) != 0;
+    BOOLEAN gsoSupported = (sc->if_net.if_capenable & IFCAP_TSO) != 0;
     if (gsoSupported) {
         NET_ADAPTER_OFFLOAD_GSO_CAPABILITIES gsoOffloadCapabilities;
 
@@ -258,7 +258,7 @@ RtAdapterSetOffloadCapabilities(
         NetAdapterOffloadSetGsoCapabilities(adapter->NetAdapter, &gsoOffloadCapabilities);
     }
 
-    BOOLEAN ieee8021qSupported = (sc->if_capenable & IFCAP_VLAN_HWTAGGING) != 0;
+    BOOLEAN ieee8021qSupported = (sc->if_net.if_capenable & IFCAP_VLAN_HWTAGGING) != 0;
     if (ieee8021qSupported) {
         const NET_ADAPTER_OFFLOAD_IEEE8021Q_TAG_FLAGS ieee8021qTaggingFlag = NetAdapterOffloadIeee8021PriorityTaggingFlag |
             NetAdapterOffloadIeee8021VlanTaggingFlag;

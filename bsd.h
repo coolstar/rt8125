@@ -1,11 +1,6 @@
 #pragma once
 
-#pragma warning (disable: 4005)
-#pragma warning (disable: 4083)
-#include <stdint.h>
-#pragma warning(default: 4005)
-#pragma warning(default: 4083)
-#include <intrin.h>
+#define __NO_STRICT_ALIGNMENT
 
 // Driver Options
 
@@ -14,22 +9,17 @@
 #define interrupt_mitigation 1
 #define phy_power_saving 1
 #define phy_mdix_mode RE_ETH_PHY_AUTO_MDI_MDIX
-#define max_rx_mbuf_sz  MJUM9BYTES
 
 #define RE_CSUM_FEATURES_IPV4    (CSUM_IP | CSUM_TCP | CSUM_UDP)
 #define RE_CSUM_FEATURES_IPV6    (CSUM_TCP_IPV6 | CSUM_UDP_IPV6)
 #define RE_CSUM_FEATURES    (RE_CSUM_FEATURES_IPV4 | RE_CSUM_FEATURES_IPV6)
 
-
 // BSD Compat
+
+#define __FBSDID(id)
 
 #define	MJUM9BYTES	(9 * 1024)	/* jumbo cluster 9k */
 #define	MJUM16BYTES	(16 * 1024)	/* jumbo cluster 16k */
-
-#define u_int8_t uint8_t
-#define u_int16_t uint16_t
-#define u_int32_t uint32_t
-#define u_int64_t uint64_t
 
 #define __P(x) x
 
@@ -42,8 +32,6 @@
 #define htole64(x) x
 
 #define ntohs(x) RtlUshortByteSwap(x)
-
-#define caddr_t uintptr_t
 
 #define	ENXIO		6		/* Device not configured */
 #define	EOPNOTSUPP	45		/* Operation not supported */
@@ -58,8 +46,6 @@
 #define device_printf(dev, x, ...) __nop()
 #endif
 
-#define DBGPRINT1(dev, x, ...) DbgPrint(x, __VA_ARGS__)
-
 #if !defined(_ARM_) && !defined(_ARM64_)
 #define WRITE_REGISTER_NOFENCE_ULONG WRITE_REGISTER_ULONG
 #define WRITE_REGISTER_NOFENCE_USHORT WRITE_REGISTER_USHORT
@@ -70,51 +56,36 @@
 #define READ_REGISTER_NOFENCE_UCHAR READ_REGISTER_UCHAR
 #endif
 
-/*
- * register space access macros
- */
-#define CSR_WRITE_4(sc, reg, val)	((sc->prohibit_access_reg)?__nop():WRITE_REGISTER_NOFENCE_ULONG((PULONG)MmioAddr(sc, reg), val))
-#define CSR_WRITE_2(sc, reg, val)	((sc->prohibit_access_reg)?__nop():WRITE_REGISTER_NOFENCE_USHORT((PUSHORT)MmioAddr(sc, reg), val))
-#define CSR_WRITE_1(sc, reg, val)	((sc->prohibit_access_reg)?__nop():WRITE_REGISTER_NOFENCE_UCHAR((PUCHAR)MmioAddr(sc, reg), val))
-
-#define CSR_READ_4(sc, reg)	((sc->prohibit_access_reg)?0xFFFFFFFF:READ_REGISTER_NOFENCE_ULONG((PULONG)MmioAddr(sc, reg)))
-#define CSR_READ_2(sc, reg)	((sc->prohibit_access_reg)?0xFFFF:READ_REGISTER_NOFENCE_USHORT((PUSHORT)MmioAddr(sc, reg)))
-#define CSR_READ_1(sc, reg)	((sc->prohibit_access_reg)?0xFF:READ_REGISTER_NOFENCE_UCHAR((PUCHAR)MmioAddr(sc, reg)))
-
-#if DISABLED_CODE
- /* cmac write/read MMIO register */
-#define RE_CMAC_WRITE_1(sc, reg, val) ((sc->prohibit_access_reg)?:bus_space_write_1(sc->re_cmac_tag, sc->re_cmac_handle, reg, val))
-#define RE_CMAC_WRITE_2(sc, reg, val) ((sc->prohibit_access_reg)?:bus_space_write_2(sc->re_cmac_tag, sc->re_cmac_handle, reg, val))
-#define RE_CMAC_WRITE_4(sc, reg, val) ((sc->prohibit_access_reg)?:bus_space_write_4(sc->re_cmac_tag, sc->re_cmac_handle, reg, val))
-#define RE_CMAC_READ_1(sc, reg) ((sc->prohibit_access_reg)?0xFF:bus_space_read_1(sc->re_cmac_tag, sc->re_cmac_handle, reg))
-#define RE_CMAC_READ_2(sc, reg) ((sc->prohibit_access_reg)?0xFFFF:bus_space_read_2(sc->re_cmac_tag, sc->re_cmac_handle, reg))
-#define RE_CMAC_READ_4(sc, reg) (sc->prohibit_access_reg)?0xFFFFFFFF:bus_space_read_4(sc->re_cmac_tag, sc->re_cmac_handle, reg))
-#endif
-
-#define RE_LOCK(_sc) WdfSpinLockAcquire(_sc->dev->Lock)
-#define RE_UNLOCK(_sc) WdfSpinLockRelease(_sc->dev->Lock)
-#define RE_LOCK_ASSERT(_sc)
-
 #include "mii.h"
 #include "ethernet.h"
 #include "if.h"
 #include "mbuf.h"
 
-extern "C" NTSYSAPI ULONG RtlRandomEx(
-    _Inout_ PULONG Seed
-);
+typedef signed char int8_t;
+typedef unsigned char uint8_t;
+typedef signed short int16_t;
+typedef unsigned short uint16_t;
+typedef signed int int32_t;
+typedef unsigned int uint32_t;
+typedef signed long long int64_t;
+typedef unsigned long long uint64_t;
 
-static inline void
-random_ether_addr(u_int8_t* dst)
-{
-    LARGE_INTEGER TickCount;
-    /* Try to generate a more random seed */
-    KeQueryTickCount(&TickCount);
+typedef uint8_t u_int8_t;
+typedef uint16_t u_int16_t;
+typedef uint32_t u_int32_t;
+typedef uint64_t u_int64_t;
+typedef uintptr_t caddr_t;
 
-    for (int i = 0; i < 6; i++) {
-        dst[i] = RtlRandomEx(&TickCount.LowPart) % 0xff;
-    }
+struct ifnet {
+    uint16_t if_mtu;
+    int if_capenable;
+    int if_hwassist;
+};
 
-    dst[0] &= 0xfe;
-    dst[0] |= 0x02;
-}
+// Placeholder types - fields are not used on WIN32.
+
+typedef char bus_dma_tag_t;
+typedef char bus_dmamap_t;
+typedef char bus_dma_segment_t;
+typedef char bus_addr_t;
+struct bus_dma_tag_common { char x; };
