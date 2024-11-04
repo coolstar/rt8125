@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bsd.h"
-#include "if_re_bsd.h"
+#include "if_rereg.h"
 #include "bsdexport.h"
 
 // multicast list size
@@ -136,9 +136,17 @@ void ConfigWrite16(_In_ RT_ADAPTER* adapter, UINT32 reg, UINT16 val);
 
 void RtResetQueues(_In_ RT_ADAPTER* adapter);
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void
 GetMulticastBit(
     _In_ NET_ADAPTER_LINK_LAYER_ADDRESS const* address,
     _Out_ _Post_satisfies_(*byte < MAX_NIC_MULTICAST_REG) UCHAR* byte,
     _Out_ UCHAR* value
 );
+
+#ifdef __cplusplus
+}
+#endif

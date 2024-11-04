@@ -45,6 +45,7 @@
 #include "trace.h"
 #include "adapter.h"
 #include <bcrypt.h>
+#include <stdbool.h>
 #endif // _WIN32
 
 #ifndef _WIN32
