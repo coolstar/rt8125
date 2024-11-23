@@ -2,6 +2,10 @@
 
 #define BSD_NT_WRAP(x) (x == 0 ? STATUS_SUCCESS : STATUS_UNSUCCESSFUL)
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int re_check_mac_version(struct re_softc* sc);
 void re_init_software_variable(struct re_softc* sc);
 void re_exit_oob(struct re_softc* sc);
@@ -26,3 +30,7 @@ int re_ifmedia_upd_8125(struct re_softc* sc);
 
 void re_rar_set(struct re_softc* sc, u_int8_t* eaddr);
 void re_set_rx_packet_filter(struct re_softc* sc);
+
+#ifdef __cplusplus
+}
+#endif
